@@ -81,6 +81,7 @@ static Level evaluate(const Config* cfg, const uint16_t dist[LIDAR_BINS], char d
     for (int i = 0; i < LIDAR_BINS; i++) {
         hit[i] = 0;
         if (cfg->blank[i] || dist[i] == 0 || !bin_watched(i, dir)) continue;
+        if (cfg->ignore_inner_mm > 0 && (int)dist[i] <= cfg->ignore_inner_mm) continue;
         uint16_t body = cfg->chassis_mm[i];
         if (body && (int)dist[i] + cfg->chassis_margin_mm >= (int)body) continue;
         if ((int)dist[i] <= cfg->l2_mm) hit[i] = 2;
@@ -427,11 +428,11 @@ static int self_test() {
     for (int d = 0; d <= 10; d++) cfg.blank[d] = true;
     cfg.chassis_mm[4] = 180;
     cfg.angle_offset_deg = 15;
-    const char* path = "/home/user/lidar/.selftest.json";
+    const char* path = "/tmp/.selftest.json";
     expect(config_save(path, &cfg), "save config");
     Config loaded;
     expect(config_load(path, &loaded), "load config");
-    expect(loaded.l1_mm == 1500 && loaded.l2_mm == 600, "ranges round-trip");
+    expect(loaded.l1_mm == 1000 && loaded.l2_mm == 550, "ranges round-trip");
     expect(loaded.blank[0] && loaded.blank[359] && loaded.blank[355], "wrapped blank kept");
     expect(!loaded.blank[180], "open angle stays open");
     expect(loaded.chassis_mm[4] == 180, "chassis round-trip");

@@ -18,6 +18,7 @@ struct Config {
     int angle_offset_deg;
     int l1_mm;
     int l2_mm;
+    int ignore_inner_mm;
     int min_adjacent;
     int confirm_scans;
     int clear_scans;

@@ -2,15 +2,19 @@
   "port": "/dev/ttyUSB0",
   "baud": 460800,
   "angle_offset_deg": 0,
-  "l1_mm": 1500,
-  "l2_mm": 600,
+  "l1_mm": 1000,
+  "l2_mm": 550,
+  "ignore_inner_mm": 500,
   "min_adjacent": 3,
   "confirm_scans": 2,
   "clear_scans": 3,
   "chassis_margin_mm": 40,
   "chassis_max_mm": 500,
   "teach_chassis": false,
-  "blank_sectors": [{"start_deg": 42, "end_deg": 42}, {"start_deg": 160, "end_deg": 160}, {"start_deg": 219, "end_deg": 219}, {"start_deg": 307, "end_deg": 307}],
+  "blank_sectors": [
+    {"start_deg": 45, "end_deg": 135},
+    {"start_deg": 225, "end_deg": 315}
+  ],
   "chassis_mm": [
     154,151,146,146,145,144,146,146,145,143,142,142,142,142,144,147,149,151,155,158,
     158,158,158,158,157,157,158,158,159,160,160,160,162,164,165,167,171,173,169,165,

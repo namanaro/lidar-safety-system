@@ -3,167 +3,587 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lidar zones</title>
+<title>LiDAR Safety System - 4-Zone Telemetry</title>
 <style>
   :root {
-    --bg: #101418;
-    --panel: #1b222b;
-    --line: #2c3846;
-    --text: #e7edf2;
-    --muted: #8d9aaa;
-    --ok: #3ddc97;
-    --l1: #f0a202;
-    --l2: #ff5d5d;
-    --fault: #9aa6b2;
+    --bg-dark: #090d14;
+    --bg-card: #101722;
+    --bg-panel: #141d2b;
+    --border: #1e2c3d;
+    --border-bright: #2d425c;
+    --text-main: #f0f4f8;
+    --text-muted: #7e91a6;
+    --accent-cyan: #00f0ff;
+    --ok: #05d5b2;
+    --ok-glow: rgba(5, 213, 178, 0.2);
+    --l1: #ffb703;
+    --l1-glow: rgba(255, 183, 3, 0.22);
+    --l2: #ff3366;
+    --l2-glow: rgba(255, 51, 102, 0.28);
+    --fault: #64748b;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 15px/1.4 "Segoe UI", sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
   header {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--line);
+    gap: 12px;
   }
-  h1 { margin: 0; font-size: 18px; font-weight: 600; }
-  #badge {
-    min-width: 92px;
-    text-align: center;
-    padding: 6px 12px;
-    border-radius: 999px;
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent-cyan), #0077ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .brand-title {
+    font-size: 15px;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    background: #2a3340;
-    color: var(--fault);
+    letter-spacing: 0.05em;
+    color: var(--text-main);
   }
-  #badge.OK { background: #143528; color: var(--ok); }
-  #badge.L1 { background: #3a2d10; color: var(--l1); }
-  #badge.L2 { background: #3a1616; color: var(--l2); }
-  #badge.FAULT, #badge.WAIT { background: #2a3340; color: var(--fault); }
+  .brand-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .header-telemetry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .badge-conn {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--fault);
+  }
+  .dot.online { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .dot.offline { background: var(--l2); box-shadow: 0 0 6px var(--l2); }
+  .badge-hz {
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    color: var(--accent-cyan);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: monospace;
+  }
+  #badge {
+    min-width: 90px;
+    text-align: center;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    background: #1e293b;
+    color: var(--fault);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+  }
+  #badge.OK { background: rgba(5, 213, 178, 0.15); color: var(--ok); border-color: var(--ok); box-shadow: 0 0 10px var(--ok-glow); }
+  #badge.L1 { background: rgba(255, 183, 3, 0.15); color: var(--l1); border-color: var(--l1); box-shadow: 0 0 10px var(--l1-glow); }
+  #badge.L2 { background: rgba(255, 51, 102, 0.18); color: var(--l2); border-color: var(--l2); box-shadow: 0 0 12px var(--l2-glow); animation: pulse 1s infinite alternate; }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.04); }
+  }
+
+  /* Host Configuration Bar */
+  .host-bar {
+    background: #0d131c;
+    border-bottom: 1px solid var(--border);
+    padding: 6px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .host-bar input {
+    background: #080c12;
+    border: 1px solid var(--border);
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 11px;
+    width: 220px;
+  }
+  .host-bar button {
+    padding: 3px 8px;
+    font-size: 10px;
+    border-radius: 4px;
+    background: #192332;
+  }
+
   .layout {
     display: grid;
-    grid-template-columns: minmax(280px, 640px) minmax(260px, 380px);
-    gap: 18px;
-    padding: 18px;
-    align-items: start;
+    grid-template-columns: minmax(360px, 600px) 1fr;
+    gap: 14px;
+    padding: 14px;
+    flex: 1;
+    max-width: 1360px;
+    margin: 0 auto;
+    width: 100%;
   }
-  @media (max-width: 860px) {
+  @media (max-width: 960px) {
     .layout { grid-template-columns: 1fr; }
+  }
+  .radar-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .canvas-wrapper {
+    position: relative;
+    background: #06090e;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
   }
   canvas {
     width: 100%;
+    max-width: 580px;
     height: auto;
-    background: #0c1014;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    touch-action: none;
+    aspect-ratio: 1/1;
+    display: block;
     cursor: crosshair;
+    touch-action: none;
   }
+  /* 4-Zone Telemetry Grid */
+  .zones-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .zone-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .zone-card.warn {
+    border-color: var(--l1);
+    background: rgba(255, 183, 3, 0.08);
+  }
+  .zone-card.stop {
+    border-color: var(--l2);
+    background: rgba(255, 51, 102, 0.12);
+  }
+  .zone-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .zone-tag {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: monospace;
+    color: var(--text-muted);
+  }
+  .zone-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .zone-state {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .state-ok { background: rgba(5, 213, 178, 0.15); color: var(--ok); }
+  .state-l1 { background: rgba(255, 183, 3, 0.2); color: var(--l1); }
+  .state-l2 { background: rgba(255, 51, 102, 0.25); color: var(--l2); }
+  .zone-body {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .zone-dist {
+    font-size: 17px;
+    font-weight: 800;
+    font-family: monospace;
+    color: #fff;
+  }
+  .zone-pts {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  /* Right control panel */
   .panel {
-    background: var(--panel);
-    border: 1px solid var(--line);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
-  .row { display: flex; gap: 10px; margin-bottom: 10px; }
-  label { display: flex; flex-direction: column; gap: 4px; flex: 1; color: var(--muted); font-size: 12px; }
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+  }
+  .btn-group {
+    display: flex;
+    gap: 6px;
+  }
+  button {
+    flex: 1;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  button:hover:not(:disabled) {
+    background: #1c283c;
+    border-color: var(--border-bright);
+  }
+  button.active {
+    background: #1e3a5f;
+    border-color: #00f0ff;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+  }
+  button.primary {
+    background: #0f4c3a;
+    border-color: #05d5b2;
+    color: #fff;
+  }
+  button.primary:hover:not(:disabled) {
+    background: #14614b;
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+  }
   input[type="number"] {
     width: 100%;
-    background: #0e141b;
-    color: var(--text);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 8px;
-    font-size: 15px;
+    background: #0a0f16;
+    color: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: monospace;
   }
-  .modes { display: flex; gap: 8px; margin-bottom: 10px; }
-  button {
-    background: #243140;
-    color: var(--text);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 14px;
-    cursor: pointer;
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
   }
-  button.active { background: #31485f; border-color: #4d6d8c; }
-  button.primary { background: #1d4d3a; border-color: #2f7a5a; }
-  button:disabled { opacity: 0.5; cursor: default; }
-  .hint { color: var(--muted); font-size: 13px; min-height: 36px; margin: 0 0 10px; }
-  .meta { color: var(--muted); font-size: 13px; margin-top: 8px; }
-  .legend { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-top: 8px; }
-  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+  .hint {
+    color: var(--text-muted);
+    font-size: 11px;
+    background: rgba(0,0,0,0.25);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border-left: 3px solid var(--border-bright);
+  }
+  .legend {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: var(--text-muted);
+    font-size: 11px;
+    padding-top: 4px;
+  }
+  .sw {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .meta-info {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+    display: flex;
+    justify-content: space-between;
+  }
 </style>
 </head>
 <body>
+
 <header>
-  <h1>Lidar zones</h1>
-  <div id="badge">WAIT</div>
-</header>
-<div class="layout">
-  <div>
-    <canvas id="plot" width="640" height="640"></canvas>
-    <div class="legend">
-      <span><i class="sw" style="background:#3ddc97"></i>clear</span>
-      <span><i class="sw" style="background:#f0a202"></i>L1 slow</span>
-      <span><i class="sw" style="background:#ff5d5d"></i>L2 stop</span>
-      <span><i class="sw" style="background:#8d9aaa"></i>blank / chassis</span>
-      <span><i class="sw" style="background:#3a4450"></i>ignored half</span>
+  <div class="brand">
+    <div class="brand-icon">⚡</div>
+    <div>
+      <div class="brand-title">RPLIDAR C1 SAFETY GUARD</div>
+      <div class="brand-subtitle">Quad-Zone AGV Active Telemetry</div>
     </div>
   </div>
+  <div class="header-telemetry">
+    <div class="badge-conn" id="conn-pill"><span class="dot" id="conn-dot"></span><span id="conn-text">Connecting...</span></div>
+    <div class="badge-hz" id="hz-val">0.0 Hz</div>
+    <div id="badge">WAIT</div>
+  </div>
+</header>
+
+<div class="host-bar">
+  <span>Backend Target:</span>
+  <input type="text" id="api-host-input" value="" placeholder="http://192.168.1.33:8080">
+  <button type="button" id="btn-save-host">Set</button>
+  <button type="button" id="btn-set-pi">Pi (192.168.1.33)</button>
+  <button type="button" id="btn-set-local">Localhost</button>
+</div>
+
+<div class="layout">
+  <!-- Left Side: Radar Plot + 4 Zone Cards -->
+  <div class="radar-box">
+    <div class="canvas-wrapper">
+      <canvas id="plot" width="600" height="600"></canvas>
+    </div>
+
+    <!-- Four Quadrant Cards: (+X,+Y), (+X,-Y), (-X,+Y), (-X,-Y) -->
+    <div class="zones-grid">
+      <!-- Q1: Front-Left (+X, +Y) [270°-360°] -->
+      <div class="zone-card" id="card-fl">
+        <div class="zone-header">
+          <span class="zone-tag">[ +X, +Y ]</span>
+          <span class="zone-name">Front-Left</span>
+          <span class="zone-state state-ok" id="state-fl">OK</span>
+        </div>
+        <div class="zone-body">
+          <div class="zone-dist" id="dist-fl">--- m</div>
+          <div class="zone-pts" id="pts-fl">0 pts</div>
+        </div>
+      </div>
+
+      <!-- Q2: Front-Right (+X, -Y) [0°-90°] -->
+      <div class="zone-card" id="card-fr">
+        <div class="zone-header">
+          <span class="zone-tag">[ +X, -Y ]</span>
+          <span class="zone-name">Front-Right</span>
+          <span class="zone-state state-ok" id="state-fr">OK</span>
+        </div>
+        <div class="zone-body">
+          <div class="zone-dist" id="dist-fr">--- m</div>
+          <div class="zone-pts" id="pts-fr">0 pts</div>
+        </div>
+      </div>
+
+      <!-- Q3: Rear-Left (-X, +Y) [180°-270°] -->
+      <div class="zone-card" id="card-rl">
+        <div class="zone-header">
+          <span class="zone-tag">[ -X, +Y ]</span>
+          <span class="zone-name">Rear-Left</span>
+          <span class="zone-state state-ok" id="state-rl">OK</span>
+        </div>
+        <div class="zone-body">
+          <div class="zone-dist" id="dist-rl">--- m</div>
+          <div class="zone-pts" id="pts-rl">0 pts</div>
+        </div>
+      </div>
+
+      <!-- Q4: Rear-Right (-X, -Y) [90°-180°] -->
+      <div class="zone-card" id="card-rr">
+        <div class="zone-header">
+          <span class="zone-tag">[ -X, -Y ]</span>
+          <span class="zone-name">Rear-Right</span>
+          <span class="zone-state state-ok" id="state-rr">OK</span>
+        </div>
+        <div class="zone-body">
+          <div class="zone-dist" id="dist-rr">--- m</div>
+          <div class="zone-pts" id="pts-rr">0 pts</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i class="sw" style="background:var(--ok)"></i>Clear (&gt; L1)</span>
+      <span><i class="sw" style="background:var(--l1)"></i>L1 Slow</span>
+      <span><i class="sw" style="background:var(--l2)"></i>L2 Stop</span>
+      <span><i class="sw" style="background:repeating-linear-gradient(45deg, #64748b, #64748b 2px, #0f172a 2px, #0f172a 4px); border:1px solid #64748b;"></i>Muted Zone (Hatched)</span>
+      <span><i class="sw" style="background:#526377"></i>Chassis (&lt;500mm)</span>
+    </div>
+  </div>
+
+  <!-- Right Side: Config & Operation Controls -->
   <div class="panel">
-    <div class="modes">
-      <button id="dir-f" type="button">Forward</button>
-      <button id="dir-r" type="button">Reverse</button>
-      <button id="dir-s" class="active" type="button">Stopped</button>
+    <div class="section-title">AGV Motion Direction</div>
+    <div class="btn-group">
+      <button id="dir-f" type="button">▲ Forward</button>
+      <button id="dir-s" class="active" type="button">■ Stopped</button>
+      <button id="dir-r" type="button">▼ Reverse</button>
     </div>
-    <p class="hint" id="dir-hint">Stopped. Both halves can warn.</p>
-    <div class="modes">
-      <button id="mode-zones" class="active" type="button">Move zones</button>
-      <button id="mode-blank" type="button">Blank rays</button>
+    <div class="hint" id="dir-hint">Stopped: active zones monitored.</div>
+
+    <div class="section-title">1. Zone Radial Lengths (mm)</div>
+    <div class="grid-3">
+      <label>Outer Warning L1<input id="l1" type="number" min="100" max="12000" step="10" value="1000"></label>
+      <label>Inner Stop L2<input id="l2" type="number" min="50" max="11999" step="10" value="550"></label>
+      <label>Chassis Ignore<input id="ignore_inner" type="number" min="0" max="5000" step="10" value="500"></label>
     </div>
-    <p class="hint" id="hint">Drag the yellow L1 ring or the red L2 ring. 0° is forward, angles increase clockwise.</p>
-    <div class="row">
-      <label>L1 mm<input id="l1" type="number" min="100" max="12000" step="10"></label>
-      <label>L2 mm<input id="l2" type="number" min="50" max="11999" step="10"></label>
-      <label>0° offset<input id="offset" type="number" step="1"></label>
+
+    <div class="section-title">2. Active Detection Angles (Cones)</div>
+    <div class="grid-2">
+      <label>Front Cone Half-Angle (±°)<input id="cone_front" type="number" min="0" max="90" step="1" value="45"></label>
+      <label>Rear Cone Half-Angle (±°)<input id="cone_rear" type="number" min="0" max="90" step="1" value="45"></label>
     </div>
-    <div class="row">
-      <label>Adjacent bins<input id="adjacent" type="number" min="1" max="30"></label>
-      <label>Confirm scans<input id="confirm" type="number" min="1" max="20"></label>
-      <label>Clear scans<input id="clear" type="number" min="1" max="20"></label>
+    <div class="hint" id="angles-hint" style="font-family: monospace; font-size: 11px;">
+      Front: 315°–45° | Rear: 135°–225° | Muted: 45°–135° & 225°–315°
     </div>
-    <div class="row">
-      <label>Chassis margin mm<input id="margin" type="number" min="0" max="500"></label>
-      <label>Teach max mm<input id="cmax" type="number" min="50" max="2000"></label>
+    <div class="btn-group">
+      <button type="button" id="btn-cone-45">±45° Cones</button>
+      <button type="button" id="btn-cone-30">±30° Narrow</button>
+      <button type="button" id="btn-cone-60">±60° Wide</button>
+      <button type="button" id="btn-cone-full">Full 360°</button>
     </div>
-    <div class="row">
-      <button id="apply" class="primary" type="button">Apply</button>
-      <button id="revert" type="button">Revert</button>
-      <button id="teach" type="button">Teach chassis</button>
-      <button id="clear-blank" type="button">Clear blanks</button>
+
+    <div class="section-title">3. Filter Tuning & Calibration</div>
+    <div class="grid-3">
+      <label>Angle Offset (°)<input id="offset" type="number" step="1" value="0"></label>
+      <label>Adjacent Bins<input id="adjacent" type="number" min="1" max="30" value="3"></label>
+      <label>Confirm Scans<input id="confirm" type="number" min="1" max="20" value="2"></label>
     </div>
-    <div class="meta" id="meta">Waiting for lidar-guard.</div>
-    <div class="meta" id="sectors"></div>
+    <div class="grid-3">
+      <label>Clear Scans<input id="clear" type="number" min="1" max="20" value="3"></label>
+      <label>Chassis Margin (mm)<input id="margin" type="number" min="0" max="500" value="40"></label>
+      <label>Teach Max (mm)<input id="cmax" type="number" min="50" max="2000" value="500"></label>
+    </div>
+
+    <div class="section-title">Actions</div>
+    <div class="grid-2">
+      <button id="apply" class="primary" type="button">Save & Apply</button>
+      <button id="revert" type="button">Revert Config</button>
+    </div>
+    <div class="grid-2">
+      <button id="teach" type="button">Teach Chassis</button>
+      <button id="clear-blank" type="button">Clear Blanks</button>
+    </div>
+
+    <div class="meta-info" id="sectors-info">No blank sectors</div>
+    <div class="meta-info" id="cursor-info">Cursor: 0° · 0.00m</div>
   </div>
 </div>
+
 <script>
+// Determine backend API origin
+function resolveApiBase() {
+  if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+    return window.location.origin;
+  }
+  // If opened directly from file:///..., check saved or default to Pi
+  return localStorage.getItem("lidar_api_base") || "http://192.168.1.33:8080";
+}
+
+let apiBase = resolveApiBase();
+const hostInput = document.getElementById("api-host-input");
+hostInput.value = apiBase;
+
+document.getElementById("btn-save-host").onclick = () => {
+  apiBase = hostInput.value.trim().replace(/\/+$/, "");
+  localStorage.setItem("lidar_api_base", apiBase);
+  loadConfig();
+};
+document.getElementById("btn-set-pi").onclick = () => {
+  apiBase = "http://192.168.1.33:8080";
+  hostInput.value = apiBase;
+  localStorage.setItem("lidar_api_base", apiBase);
+  loadConfig();
+};
+document.getElementById("btn-set-local").onclick = () => {
+  apiBase = "http://localhost:8080";
+  hostInput.value = apiBase;
+  localStorage.setItem("lidar_api_base", apiBase);
+  loadConfig();
+};
+
 const canvas = document.getElementById("plot");
 const ctx = canvas.getContext("2d");
 const badge = document.getElementById("badge");
-const hint = document.getElementById("hint");
-const meta = document.getElementById("meta");
-const sectorsEl = document.getElementById("sectors");
+const hzVal = document.getElementById("hz-val");
+const cursorInfo = document.getElementById("cursor-info");
+const sectorsInfo = document.getElementById("sectors-info");
+const connDot = document.getElementById("conn-dot");
+const connText = document.getElementById("conn-text");
+
+// Quadrant Card Elements
+const cards = {
+  fl: { card: document.getElementById("card-fl"), state: document.getElementById("state-fl"), dist: document.getElementById("dist-fl"), pts: document.getElementById("pts-fl") },
+  fr: { card: document.getElementById("card-fr"), state: document.getElementById("state-fr"), dist: document.getElementById("dist-fr"), pts: document.getElementById("pts-fr") },
+  rl: { card: document.getElementById("card-rl"), state: document.getElementById("state-rl"), dist: document.getElementById("dist-rl"), pts: document.getElementById("pts-rl") },
+  rr: { card: document.getElementById("card-rr"), state: document.getElementById("state-rr"), dist: document.getElementById("dist-rr"), pts: document.getElementById("pts-rr") }
+};
 
 const el = {
   l1: document.getElementById("l1"),
   l2: document.getElementById("l2"),
+  ignore_inner: document.getElementById("ignore_inner"),
+  cone_front: document.getElementById("cone_front"),
+  cone_rear: document.getElementById("cone_rear"),
   offset: document.getElementById("offset"),
   adjacent: document.getElementById("adjacent"),
   confirm: document.getElementById("confirm"),
@@ -177,7 +597,6 @@ let baud = 460800;
 let blank = new Array(360).fill(false);
 let chassis = new Array(360).fill(0);
 let dist = new Array(360).fill(0);
-let mode = "zones";
 let dirty = false;
 let teaching = false;
 let drag = null;
@@ -188,8 +607,141 @@ let level = "WAIT";
 let travel = "S";
 
 function num(input, fallback) {
+  if (!input) return fallback;
   const v = Number(input.value);
   return Number.isFinite(v) ? v : fallback;
+}
+
+// Seamless Diagonal Hatched Line (///) Pattern for Muted Sectors
+let hatchPattern = null;
+function getHatchPattern() {
+  if (hatchPattern) return hatchPattern;
+  const p = document.createElement("canvas");
+  p.width = 16;
+  p.height = 16;
+  const pc = p.getContext("2d");
+
+  // Subtle dark background
+  pc.fillStyle = "#070b12";
+  pc.fillRect(0, 0, 16, 16);
+
+  // Parallel diagonal hatched lines (///)
+  pc.strokeStyle = "rgba(100, 130, 165, 0.45)";
+  pc.lineWidth = 1.8;
+  pc.beginPath();
+  // Line 1: (0, 8) to (8, 0)
+  pc.moveTo(0, 8);
+  pc.lineTo(8, 0);
+  // Line 2: (8, 16) to (16, 8)
+  pc.moveTo(8, 16);
+  pc.lineTo(16, 8);
+  pc.stroke();
+
+  hatchPattern = ctx.createPattern(p, "repeat");
+  return hatchPattern;
+}
+
+function drawMutedSector(s, g) {
+  let span = s.end_deg - s.start_deg;
+  if (span < 0) span += 360;
+  if (span === 0) return;
+
+  const rad0 = (s.start_deg - 90) * Math.PI / 180;
+  const rad1 = rad0 + span * Math.PI / 180;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(g.cx, g.cy);
+  ctx.arc(g.cx, g.cy, g.plotR, rad0, rad1, false);
+  ctx.closePath();
+
+  // 1. Fill with diagonal hatched lines
+  const pat = getHatchPattern();
+  ctx.fillStyle = pat ? pat : "#090d15";
+  ctx.fill();
+
+  // 2. Dashed boundary lines along rays
+  ctx.strokeStyle = "rgba(100, 130, 165, 0.6)";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 3. Label inside the muted sector
+  let midDeg = (s.start_deg + span / 2) % 360;
+  const midRad = (midDeg - 90) * Math.PI / 180;
+  const tr = g.plotR * 0.55;
+  const tx = g.cx + tr * Math.cos(midRad);
+  const ty = g.cy + tr * Math.sin(midRad);
+
+  ctx.save();
+  ctx.translate(tx, ty);
+  ctx.rotate(midRad + Math.PI / 2);
+  ctx.fillStyle = "rgba(148, 163, 184, 0.75)";
+  ctx.font = "bold 10px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("/// MUTED ZONE ///", 0, 0);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function updateAnglesHint(f, r) {
+  const f_start = (360 - f) % 360;
+  const f_end = f;
+  const r_start = 180 - r;
+  const r_end = 180 + r;
+  const m1_start = f;
+  const m1_end = 180 - r;
+  const m2_start = 180 + r;
+  const m2_end = (360 - f) % 360;
+
+  const hintEl = document.getElementById("angles-hint");
+  if (hintEl) {
+    if (f >= 90 && r >= 90) {
+      hintEl.innerHTML = `<strong>Full 360° Active</strong> (No muted sectors)`;
+    } else {
+      hintEl.innerHTML = `<strong>Active Front:</strong> ${f_start}°–${f_end}° (±${f}°) | <strong>Active Rear:</strong> ${r_start}°–${r_end}° (±${r}°)<br>` +
+        `<span style="color:#94a3b8"><strong>Muted (Hatched):</strong> ${m1_start}°–${m1_end}° & ${m2_start}°–${m2_end}°</span>`;
+    }
+  }
+}
+
+function updateAnglesFromCones() {
+  const f = Math.max(0, Math.min(90, num(el.cone_front, 45)));
+  const r = Math.max(0, Math.min(90, num(el.cone_rear, 45)));
+  el.cone_front.value = f;
+  el.cone_rear.value = r;
+
+  blank = new Array(360).fill(false);
+  if (f < 90 || r < 90) {
+    const m1_start = f;
+    const m1_end = 180 - r;
+    const m2_start = 180 + r;
+    const m2_end = 360 - f;
+
+    if (m1_end >= m1_start) {
+      for (let i = m1_start; i <= m1_end; i++) blank[i % 360] = true;
+    }
+    if (m2_end >= m2_start) {
+      for (let i = m2_start; i <= m2_end; i++) blank[i % 360] = true;
+    }
+  }
+  updateAnglesHint(f, r);
+  dirty = true;
+  draw();
+}
+
+function deduceConesFromBlank(sectors) {
+  if (!sectors || sectors.length === 0) return { f: 90, r: 90 };
+  if (sectors.length >= 2) {
+    const s0 = sectors[0];
+    const f = Math.max(0, Math.min(90, s0.start_deg));
+    const r = Math.max(0, Math.min(90, 180 - s0.end_deg));
+    return { f, r };
+  }
+  return { f: 45, r: 45 };
 }
 
 function sectorsToMask(sectors) {
@@ -225,17 +777,25 @@ function maskToSectors(mask) {
 }
 
 function applyConfig(cfg) {
+  if (!cfg) return;
   port = cfg.port || port;
   baud = cfg.baud || baud;
-  el.l1.value = cfg.l1_mm;
-  el.l2.value = cfg.l2_mm;
-  el.offset.value = cfg.angle_offset_deg || 0;
-  el.adjacent.value = cfg.min_adjacent;
-  el.confirm.value = cfg.confirm_scans;
-  el.clear.value = cfg.clear_scans;
-  el.margin.value = cfg.chassis_margin_mm;
-  el.cmax.value = cfg.chassis_max_mm;
+  if (cfg.l1_mm) el.l1.value = cfg.l1_mm;
+  if (cfg.l2_mm) el.l2.value = cfg.l2_mm;
+  if (cfg.ignore_inner_mm !== undefined) el.ignore_inner.value = cfg.ignore_inner_mm;
+  if (cfg.angle_offset_deg !== undefined) el.offset.value = cfg.angle_offset_deg;
+  if (cfg.min_adjacent) el.adjacent.value = cfg.min_adjacent;
+  if (cfg.confirm_scans) el.confirm.value = cfg.confirm_scans;
+  if (cfg.clear_scans) el.clear.value = cfg.clear_scans;
+  if (cfg.chassis_margin_mm !== undefined) el.margin.value = cfg.chassis_margin_mm;
+  if (cfg.chassis_max_mm) el.cmax.value = cfg.chassis_max_mm;
+  
   blank = sectorsToMask(cfg.blank_sectors);
+  const cones = deduceConesFromBlank(cfg.blank_sectors);
+  el.cone_front.value = cones.f;
+  el.cone_rear.value = cones.r;
+  updateAnglesHint(cones.f, cones.r);
+
   chassis = new Array(360).fill(0);
   const src = cfg.chassis_mm || [];
   for (let i = 0; i < 360; i++) chassis[i] = src[i] || 0;
@@ -244,8 +804,8 @@ function applyConfig(cfg) {
 }
 
 function collect(teachFlag) {
-  let l1 = num(el.l1, 1500);
-  let l2 = num(el.l2, 600);
+  let l1 = num(el.l1, 1000);
+  let l2 = num(el.l2, 550);
   if (l2 >= l1) l2 = l1 - 1;
   el.l2.value = l2;
   return {
@@ -253,11 +813,12 @@ function collect(teachFlag) {
     angle_offset_deg: num(el.offset, 0),
     l1_mm: l1,
     l2_mm: l2,
+    ignore_inner_mm: num(el.ignore_inner, 500),
     min_adjacent: num(el.adjacent, 3),
     confirm_scans: num(el.confirm, 2),
     clear_scans: num(el.clear, 3),
     chassis_margin_mm: num(el.margin, 40),
-    chassis_max_mm: num(el.cmax, 400),
+    chassis_max_mm: num(el.cmax, 500),
     teach_chassis: !!teachFlag,
     blank_sectors: maskToSectors(blank),
     chassis_mm: chassis.slice()
@@ -265,25 +826,52 @@ function collect(teachFlag) {
 }
 
 async function loadConfig() {
-  const res = await fetch("/api/config");
-  applyConfig(await res.json());
+  try {
+    const res = await fetch(apiBase + "/api/config");
+    if (res.ok) {
+      applyConfig(await res.json());
+      setConnState(true);
+      return;
+    }
+  } catch (err) {
+    console.warn("Config load fallback: using defaults", err);
+    setConnState(false);
+  }
+  draw();
+}
+
+function setConnState(online) {
+  connDot.className = "dot " + (online ? "online" : "offline");
+  connText.textContent = online ? "Online" : "Connecting...";
 }
 
 function markDirty() { dirty = true; draw(); }
-
 for (const input of Object.values(el)) input.addEventListener("input", markDirty);
 
-document.getElementById("mode-zones").onclick = () => setMode("zones");
-document.getElementById("mode-blank").onclick = () => setMode("blank");
+// Angle inputs & Preset buttons
+el.cone_front.addEventListener("input", updateAnglesFromCones);
+el.cone_rear.addEventListener("input", updateAnglesFromCones);
 
-function setMode(next) {
-  mode = next;
-  document.getElementById("mode-zones").classList.toggle("active", mode === "zones");
-  document.getElementById("mode-blank").classList.toggle("active", mode === "blank");
-  hint.textContent = mode === "zones"
-    ? "Drag the yellow L1 ring or the red L2 ring. 0° is forward, angles increase clockwise."
-    : "Drag across rays to blank the chassis. Drag a blank ray again to restore it.";
-}
+document.getElementById("btn-cone-45").onclick = () => {
+  el.cone_front.value = 45;
+  el.cone_rear.value = 45;
+  updateAnglesFromCones();
+};
+document.getElementById("btn-cone-30").onclick = () => {
+  el.cone_front.value = 30;
+  el.cone_rear.value = 30;
+  updateAnglesFromCones();
+};
+document.getElementById("btn-cone-60").onclick = () => {
+  el.cone_front.value = 60;
+  el.cone_rear.value = 60;
+  updateAnglesFromCones();
+};
+document.getElementById("btn-cone-full").onclick = () => {
+  el.cone_front.value = 90;
+  el.cone_rear.value = 90;
+  updateAnglesFromCones();
+};
 
 function pointerPos(e) {
   const r = canvas.getBoundingClientRect();
@@ -296,10 +884,10 @@ function pointerPos(e) {
 function geom() {
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
-  const plotR = canvas.width / 2 - 28;
-  const l1 = num(el.l1, 1500);
-  const view = Math.max(l1 * 1.3, 1200);
-  return { cx, cy, plotR, view, l1, l2: num(el.l2, 600) };
+  const plotR = canvas.width / 2 - 32;
+  const l1 = num(el.l1, 1000);
+  const view = Math.max(l1 * 1.35, 1200);
+  return { cx, cy, plotR, view, l1, l2: num(el.l2, 550), ignore_inner: num(el.ignore_inner, 500) };
 }
 
 function degOf(x, y, g) {
@@ -322,21 +910,18 @@ canvas.addEventListener("pointerdown", (e) => {
   const dx = p.x - g.cx;
   const dy = p.y - g.cy;
   const r = Math.hypot(dx, dy);
-  if (mode === "zones") {
-    const rl1 = ringRadius(g.l1, g);
-    const rl2 = ringRadius(g.l2, g);
-    const d1 = Math.abs(r - rl1);
-    const d2 = Math.abs(r - rl2);
-    if (d2 <= 14 && d2 <= d1) drag = { kind: "l2" };
-    else if (d1 <= 14) drag = { kind: "l1" };
-    else drag = null;
-    if (drag) applyDrag(r, g);
-  } else {
-    const deg = Math.round(degOf(p.x, p.y, g)) % 360;
-    drag = { kind: "blank", value: !blank[deg], last: deg };
-    blank[deg] = drag.value;
-    dirty = true;
-  }
+
+  const rl1 = ringRadius(g.l1, g);
+  const rl2 = ringRadius(g.l2, g);
+  const rIgn = ringRadius(g.ignore_inner, g);
+  const d1 = Math.abs(r - rl1);
+  const d2 = Math.abs(r - rl2);
+  const dIgn = Math.abs(r - rIgn);
+  if (dIgn <= 14 && dIgn <= d1 && dIgn <= d2) drag = { kind: "ign" };
+  else if (d2 <= 14 && d2 <= d1) drag = { kind: "l2" };
+  else if (d1 <= 14) drag = { kind: "l1" };
+  else drag = null;
+  if (drag) applyDrag(r, g);
   draw();
 });
 
@@ -348,14 +933,13 @@ canvas.addEventListener("pointermove", (e) => {
   const r = Math.hypot(dx, dy);
   const deg = degOf(p.x, p.y, g);
   const mm = Math.round((r / g.plotR) * g.view);
-  if (!drag) {
-    meta.textContent = statusLine(deg, mm);
-    return;
-  }
-  if (drag.kind === "l1" || drag.kind === "l2") applyDrag(r, g);
-  else paintTo(Math.round(deg) % 360);
+  const x_m = ((r * Math.cos((deg - 90) * Math.PI / 180)) / g.plotR * g.view / 1000).toFixed(2);
+  const y_m = ((-r * Math.sin((deg - 90) * Math.PI / 180)) / g.plotR * g.view / 1000).toFixed(2);
+  cursorInfo.textContent = `Cursor: ${Math.round(deg)}° · ${(mm/1000).toFixed(2)}m (X:${x_m}m Y:${y_m}m)`;
+
+  if (!drag) return;
+  applyDrag(r, g);
   draw();
-  meta.textContent = statusLine(deg, mm);
 });
 
 function endDrag() { drag = null; }
@@ -365,27 +949,19 @@ canvas.addEventListener("pointercancel", endDrag);
 function applyDrag(r, g) {
   let mm = Math.round((r / g.plotR) * g.view);
   if (drag.kind === "l1") {
-    const floor = num(el.l2, 600) + 1;
+    const floor = num(el.l2, 550) + 1;
     mm = Math.max(floor, Math.min(12000, mm));
     el.l1.value = mm;
-  } else {
-    const cap = num(el.l1, 1500) - 1;
-    mm = Math.max(50, Math.min(cap, mm));
+  } else if (drag.kind === "l2") {
+    const floor = num(el.ignore_inner, 500) + 1;
+    const cap = num(el.l1, 1000) - 1;
+    mm = Math.max(floor, Math.min(cap, mm));
     el.l2.value = mm;
+  } else if (drag.kind === "ign") {
+    const cap = num(el.l2, 550) - 1;
+    mm = Math.max(0, Math.min(cap, mm));
+    el.ignore_inner.value = mm;
   }
-  dirty = true;
-}
-
-function paintTo(deg) {
-  let d = deg - drag.last;
-  while (d > 180) d -= 360;
-  while (d < -180) d += 360;
-  const steps = Math.max(1, Math.ceil(Math.abs(d)));
-  for (let s = 0; s <= steps; s++) {
-    const a = Math.round((drag.last + (d * s) / steps + 360) % 360) % 360;
-    blank[a] = drag.value;
-  }
-  drag.last = deg;
   dirty = true;
 }
 
@@ -399,10 +975,247 @@ function binWatched(i) {
   return true;
 }
 
+function isBody(i, mm) {
+  const body = chassis[i] || 0;
+  if (!body) return false;
+  return mm + num(el.margin, 40) >= body;
+}
+
+// Evaluate each of the 4 quadrant zones for real-time cards
+function updateQuadrantCards(g) {
+  const qStats = {
+    fl: { min: Infinity, pts: 0, state: "OK" },
+    fr: { min: Infinity, pts: 0, state: "OK" },
+    rl: { min: Infinity, pts: 0, state: "OK" },
+    rr: { min: Infinity, pts: 0, state: "OK" }
+  };
+
+  for (let i = 0; i < 360; i++) {
+    const mm = dist[i];
+    if (!mm) continue;
+    let key = "fr";
+    if (i >= 270) key = "fl";
+    else if (i >= 180) key = "rl";
+    else if (i >= 90) key = "rr";
+
+    const watched = binWatched(i);
+    const ignored = (g.ignore_inner > 0 && mm <= g.ignore_inner) || blank[i] || isBody(i, mm) || !watched;
+    if (!ignored) {
+      qStats[key].pts++;
+      if (mm < qStats[key].min) qStats[key].min = mm;
+      if (mm <= g.l2) qStats[key].state = "L2";
+      else if (mm <= g.l1 && qStats[key].state !== "L2") qStats[key].state = "L1";
+    }
+  }
+
+  // Update DOM elements cleanly
+  for (const [k, s] of Object.entries(qStats)) {
+    const c = cards[k];
+    c.card.classList.toggle("warn", s.state === "L1");
+    c.card.classList.toggle("stop", s.state === "L2");
+    c.state.textContent = s.state;
+    c.state.className = "zone-state state-" + s.state.toLowerCase();
+    c.dist.textContent = Number.isFinite(s.min) ? (s.min / 1000).toFixed(2) + " m" : "--- m";
+    c.pts.textContent = s.pts + " pts";
+  }
+}
+
+function draw() {
+  const g = geom();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.fillStyle = "#080c13";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 1. Quadrant background tinting (+X,+Y, +X,-Y, -X,+Y, -X,-Y)
+  // Q1 (Top-Left): Front-Left [+X, +Y]
+  ctx.fillStyle = "rgba(0, 240, 255, 0.02)";
+  ctx.fillRect(g.cx - g.plotR, g.cy - g.plotR, g.plotR, g.plotR);
+  // Q2 (Top-Right): Front-Right [+X, -Y]
+  ctx.fillStyle = "rgba(0, 119, 255, 0.02)";
+  ctx.fillRect(g.cx, g.cy - g.plotR, g.plotR, g.plotR);
+  // Q3 (Bottom-Left): Rear-Left [-X, +Y]
+  ctx.fillStyle = "rgba(139, 92, 246, 0.02)";
+  ctx.fillRect(g.cx - g.plotR, g.cy, g.plotR, g.plotR);
+  // Q4 (Bottom-Right): Rear-Right [-X, -Y]
+  ctx.fillStyle = "rgba(99, 102, 241, 0.02)";
+  ctx.fillRect(g.cx, g.cy, g.plotR, g.plotR);
+
+  // 2. Muted Sectors with Diagonal Hatched Lines (///)
+  const mutedSectors = maskToSectors(blank);
+  for (const s of mutedSectors) {
+    drawMutedSector(s, g);
+  }
+
+  // 3. Active Detection Cone Boundary Rays
+  ctx.beginPath();
+  ctx.strokeStyle = "rgba(0, 240, 255, 0.5)";
+  ctx.lineWidth = 1.5;
+  const f = num(el.cone_front, 45);
+  const r = num(el.cone_rear, 45);
+  if (f < 90 || r < 90) {
+    const boundaryAngles = [
+      (360 - f) % 360, f,
+      (180 - r) % 360, (180 + r) % 360
+    ];
+    for (let a of boundaryAngles) {
+      const rad = (a - 90) * Math.PI / 180;
+      ctx.moveTo(g.cx, g.cy);
+      ctx.lineTo(g.cx + g.plotR * Math.cos(rad), g.cy + g.plotR * Math.sin(rad));
+    }
+  }
+  ctx.stroke();
+
+  // 4. Grid Rings (Distance circles)
+  ctx.lineWidth = 1;
+  const rings = [0.25, 0.5, 0.75, 1.0];
+  for (let frac of rings) {
+    const r = g.plotR * frac;
+    ctx.beginPath();
+    ctx.arc(g.cx, g.cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = frac === 1.0 ? "#243247" : "#141e2e";
+    ctx.stroke();
+
+    // Distance labels along axis
+    const mm = Math.round(g.view * frac);
+    ctx.fillStyle = "#4a607a";
+    ctx.font = "10px monospace";
+    ctx.fillText(`${(mm/1000).toFixed(1)}m`, g.cx + 5, g.cy - r + 11);
+  }
+
+  // 5. Quadrant Axes (+X, -X, +Y, -Y)
+  ctx.beginPath();
+  ctx.moveTo(g.cx, g.cy - g.plotR - 10);
+  ctx.lineTo(g.cx, g.cy + g.plotR + 10);
+  ctx.moveTo(g.cx - g.plotR - 10, g.cy);
+  ctx.lineTo(g.cx + g.plotR + 10, g.cy);
+  ctx.strokeStyle = "#243b55";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Axis Labels
+  ctx.fillStyle = "#8aa4be";
+  ctx.font = "bold 11px sans-serif";
+  ctx.fillText("+X (FRONT)", g.cx - 30, g.cy - g.plotR - 14);
+  ctx.fillText("-X (REAR)", g.cx - 26, g.cy + g.plotR + 24);
+  ctx.fillText("+Y (LEFT)", g.cx - g.plotR - 20, g.cy - 6);
+  ctx.fillText("-Y (RIGHT)", g.cx + g.plotR - 38, g.cy - 6);
+
+  // Quadrant Watermark Badges
+  ctx.font = "bold 10px monospace";
+  ctx.fillStyle = "rgba(0, 240, 255, 0.35)";
+  ctx.fillText("[ +X, +Y ] FL", g.cx - g.plotR + 12, g.cy - g.plotR + 24);
+  ctx.fillStyle = "rgba(0, 150, 255, 0.35)";
+  ctx.fillText("[ +X, -Y ] FR", g.cx + g.plotR - 86, g.cy - g.plotR + 24);
+  ctx.fillStyle = "rgba(160, 100, 255, 0.35)";
+  ctx.fillText("[ -X, +Y ] RL", g.cx - g.plotR + 12, g.cy + g.plotR - 14);
+  ctx.fillStyle = "rgba(100, 120, 255, 0.35)";
+  ctx.fillText("[ -X, -Y ] RR", g.cx + g.plotR - 86, g.cy + g.plotR - 14);
+
+  // 6. Zone Boundary Rings (Outer L1, Inner L2, Most Inner Ignore)
+  const rl1 = ringRadius(g.l1, g);
+  const rl2 = ringRadius(g.l2, g);
+  const rIgn = ringRadius(g.ignore_inner, g);
+
+  // Outer L1 Warning Ring (1 m / 1000 mm)
+  ctx.beginPath();
+  ctx.arc(g.cx, g.cy, rl1, 0, Math.PI * 2);
+  ctx.strokeStyle = "#ffb703";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255, 183, 3, 0.05)";
+  ctx.fill();
+
+  // Inner L2 Stop Ring (55 cm / 550 mm)
+  ctx.beginPath();
+  ctx.arc(g.cx, g.cy, rl2, 0, Math.PI * 2);
+  ctx.strokeStyle = "#ff3366";
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255, 51, 102, 0.09)";
+  ctx.fill();
+
+  // Most Inner Ignored Circle (< 500 mm)
+  if (g.ignore_inner > 0) {
+    ctx.beginPath();
+    ctx.arc(g.cx, g.cy, rIgn, 0, Math.PI * 2);
+    ctx.strokeStyle = "#64748b";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(100, 116, 139, 0.12)";
+    ctx.fill();
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "bold 9px monospace";
+    ctx.fillText(`IGNORE (<${g.ignore_inner}mm)`, g.cx - 42, g.cy - rIgn - 4);
+  }
+
+  // 7. Travel Direction Shading (Ignore Inactive Half)
+  if (travel !== "S") {
+    ctx.beginPath();
+    ctx.moveTo(g.cx, g.cy);
+    if (travel === "F") ctx.arc(g.cx, g.cy, g.plotR, 0, Math.PI);
+    else ctx.arc(g.cx, g.cy, g.plotR, Math.PI, 0);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+    ctx.fill();
+  }
+
+  // 8. Render LiDAR Range Points (Active Detection Only - Muted Points Hidden)
+  for (let i = 0; i < 360; i++) {
+    const mm = dist[i];
+    if (!mm) continue;
+    if (blank[i]) continue; // DO NOT show points in muted zones
+    const rr = Math.min(g.plotR, (mm / g.view) * g.plotR);
+    const rad = (i - 90) * Math.PI / 180;
+    const x = g.cx + rr * Math.cos(rad);
+    const y = g.cy + rr * Math.sin(rad);
+
+    let color = "#05d5b2";
+    if (g.ignore_inner > 0 && mm <= g.ignore_inner) color = "#475569";
+    else if (!binWatched(i)) color = "#223142";
+    else if (isBody(i, mm)) color = "#526377";
+    else if (mm <= g.l2) color = "#ff3366";
+    else if (mm <= g.l1) color = "#ffb703";
+
+    ctx.fillStyle = color;
+    ctx.fillRect(x - 1.8, y - 1.8, 3.6, 3.6);
+  }
+
+  // 9. Center Robot Vehicle Indicator
+  ctx.beginPath();
+  ctx.arc(g.cx, g.cy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#00f0ff";
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "#fff";
+  ctx.stroke();
+
+  // Update telemetry cards
+  updateQuadrantCards(g);
+
+  // Sector stats
+  sectorsInfo.textContent = mutedSectors.length
+    ? "Muted (Hatched): " + mutedSectors.map((s) => s.start_deg + "°–" + s.end_deg + "°").join(", ")
+    : "Full 360° Active (No muted sectors)";
+  sectorsInfo.textContent += ` · ${chassis.filter((v) => v > 0).length} chassis rays${dirty ? " · [UNSAVED]" : ""}`;
+}
+
+function setBadge(name) {
+  const mark = (name === "WAIT" || !travel) ? "" : travel + " ";
+  badge.textContent = name === "WAIT" ? "WAIT" : mark + name;
+  badge.className = name;
+}
+
 function dirText() {
-  if (travel === "F") return "Forward. Warnings use 270°–90°.";
-  if (travel === "R") return "Reverse. Warnings use 90°–270°.";
-  return "Stopped. Both halves can warn.";
+  if (travel === "F") return "Forward (▲): Front quadrants [270°–90°] guarded.";
+  if (travel === "R") return "Reverse (▼): Rear quadrants [90°–270°] guarded.";
+  return "Stopped (■): 360° all four quadrants guarded.";
 }
 
 function highlightDir() {
@@ -412,126 +1225,29 @@ function highlightDir() {
   document.getElementById("dir-hint").textContent = dirText();
 }
 
-function isBody(i, mm) {
-  const body = chassis[i] || 0;
-  if (!body) return false;
-  return mm + num(el.margin, 40) >= body;
-}
-
-function draw() {
-  const g = geom();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#0c1014";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  for (let i = 0; i < 360; i++) {
-    if (!blank[i]) continue;
-    const a0 = (i - 0.5 - 90) * Math.PI / 180;
-    const a1 = (i + 0.5 - 90) * Math.PI / 180;
-    ctx.beginPath();
-    ctx.moveTo(g.cx, g.cy);
-    ctx.arc(g.cx, g.cy, g.plotR, a0, a1);
-    ctx.closePath();
-    ctx.fillStyle = "#1a2430";
-    ctx.fill();
-  }
-
-  ctx.strokeStyle = "#243140";
-  ctx.lineWidth = 1;
-  for (let frac of [0.25, 0.5, 0.75, 1]) {
-    ctx.beginPath();
-    ctx.arc(g.cx, g.cy, g.plotR * frac, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  ctx.beginPath();
-  ctx.moveTo(g.cx, g.cy - g.plotR);
-  ctx.lineTo(g.cx, g.cy + g.plotR);
-  ctx.moveTo(g.cx - g.plotR, g.cy);
-  ctx.lineTo(g.cx + g.plotR, g.cy);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(g.cx, g.cy, ringRadius(g.l1, g), 0, Math.PI * 2);
-  ctx.strokeStyle = "#f0a202";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(g.cx, g.cy, ringRadius(g.l2, g), 0, Math.PI * 2);
-  ctx.strokeStyle = "#ff5d5d";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  if (travel !== "S") {
-    ctx.beginPath();
-    ctx.moveTo(g.cx, g.cy);
-    if (travel === "F") ctx.arc(g.cx, g.cy, g.plotR, 0, Math.PI);
-    else ctx.arc(g.cx, g.cy, g.plotR, Math.PI, 0);
-    ctx.closePath();
-    ctx.fillStyle = "rgba(0,0,0,0.45)";
-    ctx.fill();
-  }
-
-  for (let i = 0; i < 360; i++) {
-    const mm = dist[i];
-    if (!mm) continue;
-    const rr = Math.min(g.plotR, (mm / g.view) * g.plotR);
-    const rad = (i - 90) * Math.PI / 180;
-    const x = g.cx + rr * Math.cos(rad);
-    const y = g.cy + rr * Math.sin(rad);
-    let color = "#3ddc97";
-    if (!binWatched(i)) color = "#3a4450";
-    else if (blank[i] || isBody(i, mm)) color = "#8d9aaa";
-    else if (mm <= g.l2) color = "#ff5d5d";
-    else if (mm <= g.l1) color = "#f0a202";
-    ctx.fillStyle = color;
-    ctx.fillRect(x - 1.6, y - 1.6, 3.2, 3.2);
-  }
-
-  ctx.fillStyle = "#d5dee6";
-  ctx.font = "13px sans-serif";
-  ctx.fillText("0°", g.cx - 8, 18);
-  if (travel === "F") ctx.fillText("FRONT", g.cx - 24, g.cy - 16);
-  if (travel === "R") ctx.fillText("REAR", g.cx - 18, g.cy + 28);
-  const sectors = maskToSectors(blank);
-  const chassisN = chassis.filter((v) => v > 0).length;
-  sectorsEl.textContent = sectors.length
-    ? "Blank " + sectors.map((s) => s.start_deg + "°–" + s.end_deg + "°").join(", ")
-    : "No blank sectors";
-  sectorsEl.textContent += " · " + chassisN + " chassis rays" + (dirty ? " · unsaved" : "");
-}
-
-function statusLine(deg, mm) {
-  const head = level === "WAIT" ? "No scan yet" : (level + "  " + hz + " Hz");
-  const where = (deg === undefined) ? "" : "  ·  " + Math.round(deg) + "°  " + mm + " mm";
-  return head + where + (dirty ? "  ·  unsaved" : "");
-}
-
-function setBadge(name) {
-  const mark = (name === "WAIT" || !travel) ? "" : travel + " ";
-  badge.textContent = name === "WAIT" ? "WAIT" : mark + name;
-  badge.className = name;
-}
-
 async function poll() {
   try {
-    const res = await fetch("/api/status");
+    const res = await fetch(apiBase + "/api/status", { signal: AbortSignal.timeout(1500) });
+    if (!res.ok) throw new Error("HTTP " + res.status);
     const st = await res.json();
     if (Array.isArray(st.dist_mm) && st.dist_mm.length === 360) dist = st.dist_mm;
     hz = st.hz || 0;
+    hzVal.textContent = hz.toFixed(1) + " Hz";
+
     if (st.ms && st.ms !== lastMs) {
       lastMs = st.ms;
       lastChange = Date.now();
     }
-    const stale = !lastMs || Date.now() - lastChange > 1200;
+    const stale = !lastMs || Date.now() - lastChange > 1500;
     if (st.dir === "F" || st.dir === "R" || st.dir === "S") travel = st.dir;
     highlightDir();
     level = stale ? "WAIT" : (st.level || "WAIT");
     setBadge(level);
-    if (!drag) meta.textContent = statusLine();
+    setConnState(true);
     draw();
   } catch (err) {
-    level = "WAIT";
-    setBadge("WAIT");
+    setConnState(false);
+    hzVal.textContent = "OFFLINE";
   }
 }
 
@@ -539,7 +1255,11 @@ async function chooseDir(next) {
   travel = next;
   highlightDir();
   draw();
-  await fetch("/api/dir", { method: "POST", body: next });
+  try {
+    await fetch(apiBase + "/api/dir", { method: "POST", body: next });
+  } catch (e) {
+    console.warn("Error setting dir:", e);
+  }
 }
 document.getElementById("dir-f").onclick = () => chooseDir("F");
 document.getElementById("dir-r").onclick = () => chooseDir("R");
@@ -554,9 +1274,9 @@ document.getElementById("apply").onclick = async () => {
 document.getElementById("revert").onclick = () => loadConfig();
 
 document.getElementById("clear-blank").onclick = () => {
-  blank = new Array(360).fill(false);
-  dirty = true;
-  draw();
+  el.cone_front.value = 90;
+  el.cone_rear.value = 90;
+  updateAnglesFromCones();
 };
 
 document.getElementById("teach").onclick = async () => {
@@ -564,36 +1284,49 @@ document.getElementById("teach").onclick = async () => {
   teaching = true;
   document.getElementById("teach").disabled = true;
   document.getElementById("apply").disabled = true;
-  hint.textContent = "Teaching chassis. Keep the robot in an open space.";
+  const dirHint = document.getElementById("dir-hint");
+  if (dirHint) dirHint.textContent = "Teaching chassis: rotate robot in open space...";
   await postConfig(collect(true));
   for (let i = 0; i < 40; i++) {
     await new Promise((r) => setTimeout(r, 500));
-    const res = await fetch("/api/config");
-    const cfg = await res.json();
-    if (!cfg.teach_chassis) {
-      applyConfig(cfg);
-      teaching = false;
-      break;
-    }
+    try {
+      const res = await fetch(apiBase + "/api/config");
+      const cfg = await res.json();
+      if (!cfg.teach_chassis) {
+        applyConfig(cfg);
+        teaching = false;
+        break;
+      }
+    } catch (e) {}
   }
   teaching = false;
   document.getElementById("teach").disabled = false;
   document.getElementById("apply").disabled = false;
-  setMode(mode);
+  highlightDir();
+  draw();
 };
 
 async function postConfig(cfg) {
-  const res = await fetch("/api/config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cfg)
-  });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await fetch(apiBase + "/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cfg)
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch (e) {
+    alert("Failed to save config: " + e.message);
+    return null;
+  }
 }
 
-loadConfig().then(poll);
-setInterval(poll, 200);
+// Initial angle initialization & immediate render so interface is NEVER blank or unconfigured
+updateAnglesFromCones();
+draw();
+loadConfig();
+poll();
+setInterval(poll, 150);
 </script>
 </body>
 </html>
