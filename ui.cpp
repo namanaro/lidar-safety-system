@@ -62,11 +62,14 @@ static char* read_file(const char* path, size_t* out_n) {
 }
 
 static void respond(int fd, int code, const char* reason, const char* type, const char* body, size_t n) {
-    char hdr[320];
+    char hdr[512];
     int h = std::snprintf(hdr, sizeof(hdr),
                           "HTTP/1.1 %d %s\r\n"
                           "Content-Type: %s\r\n"
                           "Content-Length: %zu\r\n"
+                          "Access-Control-Allow-Origin: *\r\n"
+                          "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
+                          "Access-Control-Allow-Headers: *\r\n"
                           "Cache-Control: no-store\r\n"
                           "Connection: close\r\n\r\n",
                           code, reason, type, n);
@@ -132,6 +135,11 @@ static void handle(int fd) {
     }
     char* q = std::strchr(url, '?');
     if (q) *q = 0;
+
+    if (std::strcmp(method, "OPTIONS") == 0) {
+        respond(fd, 204, "No Content", "text/plain", "", 0);
+        return;
+    }
 
     if (std::strcmp(method, "GET") == 0 && (std::strcmp(url, "/") == 0 || std::strcmp(url, "/index.html") == 0)) {
         size_t hn = 0;

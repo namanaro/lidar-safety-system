@@ -9,8 +9,9 @@ void config_defaults(Config* c) {
     std::snprintf(c->port, sizeof(c->port), "/dev/ttyUSB0");
     c->baud = 460800;
     c->angle_offset_deg = 0;
-    c->l1_mm = 1500;
-    c->l2_mm = 600;
+    c->l1_mm = 1000;
+    c->l2_mm = 550;
+    c->ignore_inner_mm = 0;
     c->min_adjacent = 3;
     c->confirm_scans = 2;
     c->clear_scans = 3;
@@ -64,6 +65,8 @@ static void clamp_config(Config* c) {
     if (c->l1_mm > 12000) c->l1_mm = 12000;
     if (c->l2_mm < 50) c->l2_mm = 50;
     if (c->l2_mm >= c->l1_mm) c->l2_mm = c->l1_mm - 1;
+    if (c->ignore_inner_mm < 0) c->ignore_inner_mm = 0;
+    if (c->ignore_inner_mm > 5000) c->ignore_inner_mm = 5000;
     if (c->min_adjacent < 1) c->min_adjacent = 1;
     if (c->min_adjacent > 30) c->min_adjacent = 30;
     if (c->confirm_scans < 1) c->confirm_scans = 1;
@@ -146,6 +149,7 @@ bool config_parse(const char* text, Config* c) {
     c->angle_offset_deg = json_int(text, "angle_offset_deg", c->angle_offset_deg);
     c->l1_mm = json_int(text, "l1_mm", c->l1_mm);
     c->l2_mm = json_int(text, "l2_mm", c->l2_mm);
+    c->ignore_inner_mm = json_int(text, "ignore_inner_mm", c->ignore_inner_mm);
     c->min_adjacent = json_int(text, "min_adjacent", c->min_adjacent);
     c->confirm_scans = json_int(text, "confirm_scans", c->confirm_scans);
     c->clear_scans = json_int(text, "clear_scans", c->clear_scans);
@@ -217,6 +221,7 @@ bool config_save(const char* path, const Config* c) {
     std::fprintf(f, "  \"angle_offset_deg\": %d,\n", c->angle_offset_deg);
     std::fprintf(f, "  \"l1_mm\": %d,\n", c->l1_mm);
     std::fprintf(f, "  \"l2_mm\": %d,\n", c->l2_mm);
+    std::fprintf(f, "  \"ignore_inner_mm\": %d,\n", c->ignore_inner_mm);
     std::fprintf(f, "  \"min_adjacent\": %d,\n", c->min_adjacent);
     std::fprintf(f, "  \"confirm_scans\": %d,\n", c->confirm_scans);
     std::fprintf(f, "  \"clear_scans\": %d,\n", c->clear_scans);
